@@ -17,7 +17,7 @@ const {
 } = process.env
 
 const huggingface = new InferenceClient(HUGGINGFACE_API_KEY)
-const embeddingModel = 'sentence-transformers/all-MiniLM-L12-v2';
+const embeddingModel = 'sentence-transformers/all-Mpnet-base-v2';
 
 const data = [
     'https://en.wikipedia.org/wiki/List_of_animal_names',
@@ -31,8 +31,7 @@ const data = [
     'https://en.wikipedia.org/wiki/List_of_reptiles_of_South_Africa',
     'https://en.wikipedia.org/wiki/List_of_mammals_of_the_United_States',
     'https://en.wikipedia.org/wiki/List_of_birds_of_the_United_States',
-    'https://en.wikipedia.org/wiki/List_of_mammals_of_Asia',
-    'https://en.wikipedia.org/wiki/List_of_birds_of_Asia'
+    'https://en.wikipedia.org/wiki/List_of_mammals_of_Asia'
 ]
 
 const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOCKET)
@@ -60,28 +59,15 @@ const loadSampleData = async () => {
         const content = await scrapePage(url)
         const chunks = await splitter.splitText(content)
         for await (const chunk of chunks) {
-            const vector = async function getEmbeddings(chunk: string): Promise<number[]> {
-                const response = await fetch(
-                    `https://api-inference.huggingface.co/models/${embeddingModel}`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${HUGGINGFACE_API_KEY}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ inputs: chunk }),
-                    }
-                );
-
-                const data = await response.json();
-                return data[0].embedding;
-            }
+            const vector = await huggingface.featureExtraction({
+                model: embeddingModel,
+                inputs: chunk,
+            });
 
             const res = await collection.insertOne({
                 $vector: vector,
                 text: chunk
             })
-
         }
     }
 }
