@@ -3,13 +3,19 @@ import Image from "next/image"
 import GPTLogo from "./assets/GPTLogo.png"
 import { useChat } from '@ai-sdk/react'
 import { useState } from 'react';
-//import { Message } from "ai"
+import { UIMessage } from "ai"
+
+import PromptSuggestionRow from "./components/PromptSuggestionRow";
+import Bubble from "./components/Bubble";
+import LoadingBubble from "./components/LoadingBubble";
+
 
 const Home = () => {
-    const { messages, sendMessage, status } = useChat()
+    const { messages, sendMessage, setMessages, status } = useChat()
     const [input, setInput] = useState('');
 
-    const noMessages = true
+    const noMessages = !messages || messages.length === 0
+    const isLoading = status === 'submitted' || status === 'streaming';
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault(); // prevent default form submit
@@ -24,6 +30,15 @@ const Home = () => {
     };
 
 
+    const handlePrompt = (promptText) => {
+        const msg: UIMessage = {
+            id: crypto.randomUUID(),
+            parts: [{ type: "text", text: promptText }],
+            role: "user"
+        }
+        setMessages([...messages, msg]); //add a new message
+    }
+
     return (
         <main>
             <Image src={GPTLogo} width="250" alt="GPT Logo" />
@@ -33,13 +48,14 @@ const Home = () => {
                         <p className="starter-text">
                             Ask about anyything related to animals and the chatbot
                             will respond as accurately as possible. Enjoy!
-                        </p><br />
-                        {/*<promptSuggestionRow/>*/}
+                        </p>
+                        <br />
+                        <PromptSuggestionRow onPromptClick={handlePrompt} />
                     </>
                 ) : (
                     <>
-                        {/*map messages to text bubbles*/}
-                        {/*<LoadingBubble/>*/}
+                        {messages.map((message, index) => <Bubble key={`message-${index}`} message={message} />)}
+                        {isLoading && <LoadingBubble />}
                     </>
                 )}
 

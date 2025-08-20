@@ -18,7 +18,7 @@ body {
 main {
     width: 80vw;
     height: 80vh;
-    background-color: linear-gradient(to_bottom, #f8f8f8, #cfcfcf);
+    background: linear-gradient(to bottom, #f8f8f8, #cfcfcf);
     border-radius: 15px;
     display: flex;
     align-items: center;
@@ -38,12 +38,11 @@ section.populated {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    overflow: scroll;
+    overflow: auto;
 }
 
 .starter-text {
     padding: 0 80px;
-    color: #f8f8f8;
 }
 
 form {
@@ -64,7 +63,7 @@ input.question-box {
     border: none;
 }
 
-input[tpye=submit] {
+input[type=submit] {
     width: 15%;
     padding: 10px;
     font-size: 15px;
@@ -75,4 +74,51 @@ input[tpye=submit] {
 
 input:focus {
     outline: none;
+}
+
+.bubble {
+    margin: 8px;
+    padding: 8px;
+    font-size: 15px;
+    border: none;
+    color: #383838;
+    box-shadow: #959da533 0 8px 24px;
+    width: 80%;
+    text-align: left;
+}
+
+.bubble.user {
+    border-radius: 20px 20px 0 20px;
+    background-color: #e1f4ffff;
+    margin-left: auto;
+}
+
+.bubble.assistant {
+    border-radius: 20px 20px 20px 0;
+    background-color: #dce7ff;
+}
+
+.loader {
+    margin: 10px;
+    width: 60px;
+    aspect-ratio: 4;
+    background: no-repeat radial-gradient(circle closest-side, #383838 90%, #0000) 0 50%,
+        no-repeat radial-gradient(circle closest-side, #383838 90%, #0000) 50% 50%,
+        no-repeat radial-gradient(circle closest-side, #383838 90%, #0000) 100% 50%;
+    background-size: calc(100%/3) 100%;
+    animation: loading 1s infinite linear;
+}
+
+@keyframes loading {
+    33% {
+        background-size: calc(100%/3) 0%, calc(100%/3) 100%, calc(100%/3) 100%;
+    }
+
+    50% {
+        background-size: calc(100%/3) 100%, calc(100%/3) 0%, calc(100%/3) 100%;
+    }
+
+    60% {
+        background-size: calc(100%/3) 100%, calc(100%/3) 100%, calc(100%/3) 0%;
+    }
 }
