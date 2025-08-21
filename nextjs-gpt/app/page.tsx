@@ -51,14 +51,15 @@ const Home = () => {
                         </p>
                         <br />
                         <PromptSuggestionRow onPromptClick={handlePrompt} />
+
                     </>
+
                 ) : (
                     <>
                         {messages.map((message, index) => <Bubble key={`message-${index}`} message={message} />)}
                         {isLoading && <LoadingBubble />}
                     </>
                 )}
-
 
             </section>
             <form onSubmit={handleSubmit}>

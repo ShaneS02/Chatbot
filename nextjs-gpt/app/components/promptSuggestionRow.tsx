@@ -1,6 +1,6 @@
 import PromptSuggestionButton from "./PromptSuggestionButton"
 
-const PromptSuggestionRow = (onPromptClick) => {
+const PromptSuggestionRow = ({ onPromptClick }) => {
     const prompts = [
         "How many mamals are in America",
         "What animal is the largest?",
