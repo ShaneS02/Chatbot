@@ -34,8 +34,7 @@ function meanPool(matrix: number[][]): number[] {
 export async function POST(req: Request) {
     try {
         const { messages } = await req.json()
-        const latestMessage = messages[messages?.length - 1]?.content
-
+        const latestMessage = messages[messages?.length - 1]?.parts[0].text
         let docContext = ""
 
 
@@ -99,7 +98,7 @@ export async function POST(req: Request) {
         }
 
         const stream = await huggingface.chatCompletionStream({
-            model: "meta-llama/Llama-2-70B-chat-hf",
+            model: "meta-llama/Meta-Llama-3-8B-Instruct",
             messages: [template, ...messages],
             stream: true,
             max_tokens: 100
