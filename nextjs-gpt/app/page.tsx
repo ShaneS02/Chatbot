@@ -1,9 +1,7 @@
 "use client"
 import Image from "next/image"
 import GPTLogo from "./assets/GPTLogo.png"
-import { useChat } from '@ai-sdk/react'
 import { useState } from 'react';
-import { UIMessage } from "ai"
 
 import PromptSuggestionRow from "./components/PromptSuggestionRow";
 import Bubble from "./components/Bubble";
@@ -11,18 +9,51 @@ import LoadingBubble from "./components/LoadingBubble";
 
 
 const Home = () => {
-    const { messages, sendMessage, setMessages, status } = useChat()
+    type ChatMessage = {
+        role: "user" | "assistant" | "system";
+        content: string;
+    };
+
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const noMessages = !messages || messages.length === 0
-    const isLoading = status === 'submitted' || status === 'streaming';
+    //const isLoading = status === 'submitted' || status === 'streaming';
+
+    const sendMessage = async (text) => {
+        setIsLoading(true); // start loading
+        // Append user's message locally
+        const userMessage: ChatMessage = { role: "user", content: text };
+        const newMessages = [...messages, userMessage];
+        setMessages(newMessages);
+
+        setInput(""); // clear input
+        try {
+            // Send messages to your API route
+            const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: newMessages }),
+            });
+
+
+            //receive messages
+            const data = await res.json();
+            const assistantMessage: ChatMessage = {
+                role: "assistant",
+                content: data.message,
+            };
+            setMessages([...newMessages, assistantMessage]);
+
+        } finally {
+            setIsLoading(false); // done loading
+        }
+    }
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault(); // prevent default form submit
-        if (input.trim()) {
-            sendMessage({ text: input }); // your existing logic
-            setInput(''); // clear input
-        }
+        e.preventDefault(); // prevent page reload
+        sendMessage(input);      // call your existing sendMessage function
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,12 +62,7 @@ const Home = () => {
 
 
     const handlePrompt = (promptText) => {
-        const msg: UIMessage = {
-            id: crypto.randomUUID(),
-            parts: [{ type: "text", text: promptText }],
-            role: "user"
-        }
-        setMessages([...messages, msg]); //add a new message
+        sendMessage(promptText);
     }
 
     return (

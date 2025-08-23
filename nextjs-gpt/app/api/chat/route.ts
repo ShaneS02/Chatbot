@@ -1,5 +1,4 @@
 import { InferenceClient } from "@huggingface/inference";
-import { streamText } from "ai"
 import { DataAPIClient } from "@datastax/astra-db-ts";
 
 const {
@@ -15,6 +14,13 @@ const embeddingModel = 'sentence-transformers/all-Mpnet-base-v2';
 
 const dbClient = new DataAPIClient(ASTRA_DB_APPLICATION_TOCKET)
 const db = dbClient.db(ASTRA_DB_API_ENDPOINT, { namespace: ASTRA_DB_NAMESPACE })
+
+type ChatCompletionStreamOutput = {
+    delta?: {
+        role?: "assistant" | "user" | "system";
+        content?: string;
+    };
+};
 
 function meanPool(matrix: number[][]): number[] {
     const length = matrix.length;
@@ -34,10 +40,90 @@ function meanPool(matrix: number[][]): number[] {
 export async function POST(req: Request) {
     try {
         const { messages } = await req.json()
-        const latestMessage = messages[messages?.length - 1]?.parts[0].text
+        const latestMessage = messages[messages?.length - 1]?.content
         let docContext = ""
 
+        const rawEmbedding = await huggingface.featureExtraction({
+            model: embeddingModel,
+            inputs: latestMessage,
+            encoding_format: "float"
+        })
 
+        let embedding: number[];
+        if (Array.isArray(rawEmbedding[0])) {
+            // token-level embeddings → mean pool
+            embedding = meanPool(rawEmbedding as number[][]);
+        } else {
+            // already sentence-level
+            embedding = rawEmbedding as number[];
+        }
+
+
+        try {
+            const collection = await db.collection(ASTRA_DB_COLLECTION)
+            const cursor = collection.find(null, {
+                sort: {
+                    $vector: embedding
+                },
+                limit: 10
+            })
+
+            const documents = await cursor.toArray()
+
+            const docsMap = documents?.map(doc => doc.text)
+
+            docContext = JSON.stringify(docsMap)
+
+
+        } catch (err) {
+            console.log("Error querying db...")
+            docContext = ""
+        }
+
+        const template = {
+            role: "system",
+            content: `You are an AI assistant for animals. You may use the following context 
+                        to help answer questions, but you do not need to mention it explicitly. 
+                        Answer naturally and directly. do not start answers with "According to the provided context". 
+                        Use context silently if it helps. If listing multiple items or points, use bullet points (-) 
+                        or numbered lists (1., 2., 3.). Don't return images.   
+        
+        ------------------
+        START CONTEXT
+        ${docContext}
+        END CONTEXT
+        ------------------
+        QUESTION: ${latestMessage}
+        ------------------
+        `
+
+        }
+
+        const systemMessage = {
+            role: "system",
+            content: "You are an AI assistant for animals. Answer questions clearly, using markdown. Do not mention sources or generate images."
+        };
+
+        const contextMessage = {
+            role: "user",
+            content: `Here is the relevant context from Wikipedia:\n${docContext}\n\nQuestion: ${latestMessage}`
+        };
+
+        const response = await huggingface.chatCompletion({
+            model: "meta-llama/Llama-3.1-8B-Instruct",
+            messages: [template, ...messages],
+            max_tokens: 100
+        });
+
+        const assistantMessage = response.choices[0].message.content;
+        console.log(assistantMessage); // should print a string
+
+
+        return new Response(JSON.stringify({ message: assistantMessage }), {
+            headers: { "Content-Type": "application/json" },
+        });
+
+        /*
         const rawEmbedding = await huggingface.featureExtraction({
             model: embeddingModel,
             inputs: latestMessage,
@@ -103,23 +189,7 @@ export async function POST(req: Request) {
             stream: true,
             max_tokens: 100
         })
-
-        const readableStream = new ReadableStream({
-            async start(controller) {
-                for await (const event of stream) {
-                    if (event.type === "message") {
-                        const chunk = new TextEncoder().encode(event.delta as string);
-                        controller.enqueue(chunk);
-                    }
-                }
-                controller.close();
-            }
-        });
-
-        // Return streaming response
-        return new Response(readableStream, {
-            headers: { "Content-Type": "text/plain; charset=utf-8" }
-        });
+            */
 
     } catch (err) {
         throw err
