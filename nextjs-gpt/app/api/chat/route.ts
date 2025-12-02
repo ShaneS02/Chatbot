@@ -99,16 +99,6 @@ export async function POST(req: Request) {
 
         }
 
-        const systemMessage = {
-            role: "system",
-            content: "You are an AI assistant for animals. Answer questions clearly, using markdown. Do not mention sources or generate images."
-        };
-
-        const contextMessage = {
-            role: "user",
-            content: `Here is the relevant context from Wikipedia:\n${docContext}\n\nQuestion: ${latestMessage}`
-        };
-
         const response = await huggingface.chatCompletion({
             model: "meta-llama/Llama-3.1-8B-Instruct",
             messages: [template, ...messages],
@@ -123,73 +113,6 @@ export async function POST(req: Request) {
             headers: { "Content-Type": "application/json" },
         });
 
-        /*
-        const rawEmbedding = await huggingface.featureExtraction({
-            model: embeddingModel,
-            inputs: latestMessage,
-            encoding_format: "float"
-        })
-
-
-
-
-        let embedding: number[];
-        if (Array.isArray(rawEmbedding[0])) {
-            // token-level embeddings → mean pool
-            embedding = meanPool(rawEmbedding as number[][]);
-        } else {
-            // already sentence-level
-            embedding = rawEmbedding as number[];
-        }
-
-
-        try {
-            const collection = await db.collection(ASTRA_DB_COLLECTION)
-            const cursor = collection.find(null, {
-                sort: {
-                    $vector: embedding
-                },
-                limit: 10
-            })
-
-            const documents = await cursor.toArray()
-            const docsMap = documents?.map(doc => doc.text)
-
-            docContext = JSON.stringify(docsMap)
-
-
-        } catch (err) {
-            console.log("Error querying db...")
-            docContext = ""
-        }
-
-
-        const template = {
-            role: "system",
-            content: `you are an AI assistant for animals. Use the below context
-        to augument what you know about animals. The context will provode information from 
-        wikipedia. Of the context doesn't include the information needed, answer based on
-        your own knowledge and don't mention the source of your information. Format responses
-        using maarkdown where applicable and don't return images.
-        
-        ------------------
-        START CONTEXT
-        ${docContext}
-        END CONTEXT
-        ------------------
-        QUESTION: ${latestMessage}
-        ------------------
-        `
-
-        }
-
-        const stream = await huggingface.chatCompletionStream({
-            model: "meta-llama/Meta-Llama-3-8B-Instruct",
-            messages: [template, ...messages],
-            stream: true,
-            max_tokens: 100
-        })
-            */
 
     } catch (err) {
         throw err
